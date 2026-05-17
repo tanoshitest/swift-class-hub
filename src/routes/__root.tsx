@@ -9,6 +9,9 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { AppSidebar } from "@/components/AppSidebar";
+import { StoreProvider } from "@/lib/mock-data";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -72,11 +75,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "EduCenter — Quản trị trung tâm" },
+      { name: "description", content: "Hệ thống quản trị trung tâm giáo dục: giáo viên, học sinh, lớp học, học phí." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "EduCenter — Quản trị trung tâm" },
+      { property: "og:description", content: "Hệ thống quản trị trung tâm giáo dục." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -113,7 +116,15 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <StoreProvider>
+        <div className="flex min-h-screen w-full bg-background">
+          <AppSidebar />
+          <main className="flex-1 min-w-0 overflow-x-auto">
+            <Outlet />
+          </main>
+        </div>
+        <Toaster />
+      </StoreProvider>
     </QueryClientProvider>
   );
 }
