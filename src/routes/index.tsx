@@ -10,6 +10,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Stat({ label, value, icon: Icon, tone = "primary", index }: any) {
+  const toneClass = tone === "destructive"
+    ? "bg-destructive/10 text-destructive"
+    : "bg-primary/10 text-primary";
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -21,7 +24,7 @@ function Stat({ label, value, icon: Icon, tone = "primary", index }: any) {
         <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
         <div className="mt-2 text-2xl font-semibold tabular-nums">{value}</div>
       </div>
-      <div className={`h-9 w-9 rounded-md flex items-center justify-center bg-${tone}/10 text-${tone}`}>
+      <div className={`h-9 w-9 rounded-md flex items-center justify-center ${toneClass}`}>
         <Icon className="h-4 w-4" />
       </div>
     </motion.div>
