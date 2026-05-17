@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useStore, uid } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/master-data")({
-  head: () => ({ meta: [{ title: "Dữ liệu gốc — EduCenter" }] }),
+  head: () => ({ meta: [{ title: "Dữ liệu gốc — STEPS" }] }),
   component: MasterData,
 });
 

@@ -20,7 +20,7 @@ export function AppSidebar() {
           <School className="h-4 w-4" />
         </div>
         <div className="leading-tight">
-          <div className="text-sm font-semibold">EduCenter</div>
+          <div className="text-sm font-semibold">STEPS</div>
           <div className="text-[11px] text-muted-foreground">Quản trị trung tâm</div>
         </div>
       </div>
