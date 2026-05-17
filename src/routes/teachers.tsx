@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFo
 import { useStore, uid, type Teacher } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/teachers")({
-  head: () => ({ meta: [{ title: "Giáo viên — EduCenter" }] }),
+  head: () => ({ meta: [{ title: "Giáo viên — STEPS" }] }),
   component: TeachersPage,
 });
 

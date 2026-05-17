@@ -10,7 +10,7 @@ import { useStore, formatVND, type Invoice } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/finance")({
-  head: () => ({ meta: [{ title: "Học phí — EduCenter" }] }),
+  head: () => ({ meta: [{ title: "Học phí — STEPS" }] }),
   component: FinancePage,
 });
 

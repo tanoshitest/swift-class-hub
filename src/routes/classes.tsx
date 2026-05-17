@@ -12,7 +12,7 @@ import { useStore, uid, formatVND, DAYS, type ClassEntity } from "@/lib/mock-dat
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/classes")({
-  head: () => ({ meta: [{ title: "Lớp học — EduCenter" }] }),
+  head: () => ({ meta: [{ title: "Lớp học — STEPS" }] }),
   component: ClassesPage,
 });
 

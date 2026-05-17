@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useStore, formatVND } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/")({
-  head: () => ({ meta: [{ title: "Dashboard — EduCenter" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — STEPS" }] }),
   component: Dashboard,
 });
 
