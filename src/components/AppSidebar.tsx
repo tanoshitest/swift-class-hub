@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, GraduationCap, Users, BookOpen, Wallet, Settings, School } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Users, BookOpen, Wallet, Settings, School, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -9,6 +9,7 @@ const items = [
   { to: "/classes", label: "Lớp học", icon: BookOpen },
   { to: "/finance", label: "Học phí", icon: Wallet },
   { to: "/master-data", label: "Dữ liệu gốc", icon: Settings },
+  { to: "/reports", label: "Báo cáo", icon: BarChart3 },
 ] as const;
 
 export function AppSidebar() {

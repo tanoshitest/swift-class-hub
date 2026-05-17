@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Pencil, X } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -79,13 +79,19 @@ function ClassesPage() {
           const t = teachers.find((x) => x.id === c.teacherId);
           const r = rooms.find((x) => x.id === c.roomId);
           return (
-            <div key={c.id} className="rounded-lg border border-border bg-card p-4 hover:border-primary/40 transition-colors cursor-pointer" onClick={() => openEdit(c)}>
+            <div key={c.id} className="rounded-lg border border-border bg-card p-4 hover:border-primary/40 transition-colors">
               <div className="flex items-start justify-between">
-                <div>
-                  <div className="font-semibold">{c.name}</div>
+                <Link to="/classes/$classId" params={{ classId: c.id }} className="flex-1 min-w-0">
+                  <div className="font-semibold hover:text-primary transition-colors">{c.name}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">GV: {t?.name ?? "—"} • {r?.name ?? "—"}</div>
-                </div>
-                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                </Link>
+                <button
+                  onClick={(e) => { e.stopPropagation(); openEdit(c); }}
+                  className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Sửa lớp"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {c.schedule.map((s, i) => {
