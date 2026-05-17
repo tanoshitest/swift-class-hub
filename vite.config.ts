@@ -16,6 +16,9 @@ if (process.env.VERCEL) {
 export default defineConfig({
   cloudflare: !process.env.VERCEL,
   tanstackStart: {
-    server: { entry: "server" },
+    server: {
+      entry: "server",
+      preset: process.env.VERCEL ? "vercel" : undefined,
+    },
   },
 });
