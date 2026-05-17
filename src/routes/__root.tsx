@@ -79,10 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Hệ thống quản trị trung tâm giáo dục: giáo viên, học sinh, lớp học, học phí." },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "EduCenter — Quản trị trung tâm" },
-      { property: "og:description", content: "Hệ thống quản trị trung tâm giáo dục." },
+      { property: "og:description", content: "Hệ thống quản trị trung tâm giáo dục: giáo viên, học sinh, lớp học, học phí." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "EduCenter — Quản trị trung tâm" },
+      { name: "twitter:description", content: "Hệ thống quản trị trung tâm giáo dục: giáo viên, học sinh, lớp học, học phí." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1b5c90cc-5869-496d-a711-e3f48115bca8/id-preview-1a945ea3--f0f1479d-2c73-4431-8dec-09b1b1689ab1.lovable.app-1778998727431.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1b5c90cc-5869-496d-a711-e3f48115bca8/id-preview-1a945ea3--f0f1479d-2c73-4431-8dec-09b1b1689ab1.lovable.app-1778998727431.png" },
     ],
     links: [
       {
