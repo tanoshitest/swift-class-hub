@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TeachersRouteImport } from './routes/teachers'
 import { Route as StudentsRouteImport } from './routes/students'
+import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as MasterDataRouteImport } from './routes/master-data'
 import { Route as FinanceRouteImport } from './routes/finance'
@@ -26,6 +27,11 @@ const TeachersRoute = TeachersRouteImport.update({
 const StudentsRoute = StudentsRouteImport.update({
   id: '/students',
   path: '/students',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleRoute = ScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/finance': typeof FinanceRoute
   '/master-data': typeof MasterDataRoute
   '/reports': typeof ReportsRoute
+  '/schedule': typeof ScheduleRoute
   '/students': typeof StudentsRoute
   '/teachers': typeof TeachersRoute
   '/classes/$classId': typeof ClassesClassIdRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/finance': typeof FinanceRoute
   '/master-data': typeof MasterDataRoute
   '/reports': typeof ReportsRoute
+  '/schedule': typeof ScheduleRoute
   '/students': typeof StudentsRoute
   '/teachers': typeof TeachersRoute
   '/classes/$classId': typeof ClassesClassIdRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/finance': typeof FinanceRoute
   '/master-data': typeof MasterDataRoute
   '/reports': typeof ReportsRoute
+  '/schedule': typeof ScheduleRoute
   '/students': typeof StudentsRoute
   '/teachers': typeof TeachersRoute
   '/classes/$classId': typeof ClassesClassIdRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/finance'
     | '/master-data'
     | '/reports'
+    | '/schedule'
     | '/students'
     | '/teachers'
     | '/classes/$classId'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/finance'
     | '/master-data'
     | '/reports'
+    | '/schedule'
     | '/students'
     | '/teachers'
     | '/classes/$classId'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/finance'
     | '/master-data'
     | '/reports'
+    | '/schedule'
     | '/students'
     | '/teachers'
     | '/classes/$classId'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   FinanceRoute: typeof FinanceRoute
   MasterDataRoute: typeof MasterDataRoute
   ReportsRoute: typeof ReportsRoute
+  ScheduleRoute: typeof ScheduleRoute
   StudentsRoute: typeof StudentsRoute
   TeachersRoute: typeof TeachersRoute
 }
@@ -147,6 +160,13 @@ declare module '@tanstack/react-router' {
       path: '/students'
       fullPath: '/students'
       preLoaderRoute: typeof StudentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule': {
+      id: '/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof ScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -211,9 +231,20 @@ const rootRouteChildren: RootRouteChildren = {
   FinanceRoute: FinanceRoute,
   MasterDataRoute: MasterDataRoute,
   ReportsRoute: ReportsRoute,
+  ScheduleRoute: ScheduleRoute,
   StudentsRoute: StudentsRoute,
   TeachersRoute: TeachersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

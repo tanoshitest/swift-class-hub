@@ -1,3 +1,4 @@
+import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -117,12 +118,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [collapsed, setCollapsed] = React.useState(false);
 
   return (
     <QueryClientProvider client={queryClient}>
       <StoreProvider>
         <div className="flex min-h-screen w-full bg-background">
-          <AppSidebar />
+          <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
           <main className="flex-1 min-w-0 overflow-x-auto">
             <Outlet />
           </main>

@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Pencil, X } from "lucide-react";
+import { Plus, Pencil, X, Users } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useStore, uid, formatVND, DAYS, type ClassEntity } from "@/lib/mock-data";
+import { useStore, uid, formatVND, DAYS, type ClassEntity, calculateEndDate } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/classes")({
@@ -17,16 +17,54 @@ export const Route = createFileRoute("/classes")({
 });
 
 const emptyClass = (): ClassEntity => ({
-  id: "", name: "", teacherId: "", roomId: "", studentIds: [], schedule: [], feePerMonth: 1000000,
+  id: "",
+  name: "",
+  teacherId: "",
+  roomId: "",
+  studentIds: [],
+  schedule: [],
+  feePerMonth: 1000000,
+  feeConfigId: "fc1",
+  studentBillings: [],
+  tuitionType: "month",
+  startDate: new Date().toISOString().split("T")[0],
+  totalSessions: 30,
+  endDate: ""
 });
 
 function ClassesPage() {
-  const { classes, setClasses, teachers, rooms, students, slots } = useStore();
+  const { classes, setClasses, teachers, rooms, students, slots, feeConfigs } = useStore();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClassEntity | null>(null);
 
-  const openNew = () => { setEditing(emptyClass()); setOpen(true); };
-  const openEdit = (c: ClassEntity) => { setEditing({ ...c, schedule: [...c.schedule], studentIds: [...c.studentIds] }); setOpen(true); };
+  const updateClassWithEndDate = (updatedClass: ClassEntity): ClassEntity => {
+    const newEndDate = calculateEndDate(
+      updatedClass.startDate || "",
+      updatedClass.totalSessions || 0,
+      updatedClass.schedule
+    );
+    return { ...updatedClass, endDate: newEndDate };
+  };
+
+  const openNew = () => {
+    const fresh = emptyClass();
+    setEditing(updateClassWithEndDate(fresh));
+    setOpen(true);
+  };
+
+  const openEdit = (c: ClassEntity) => {
+    const editObj: ClassEntity = {
+      ...c,
+      schedule: [...c.schedule],
+      studentIds: [...c.studentIds],
+      tuitionType: c.tuitionType || "month",
+      startDate: c.startDate || new Date().toISOString().split("T")[0],
+      totalSessions: c.totalSessions || 30,
+      endDate: c.endDate || ""
+    };
+    setEditing(updateClassWithEndDate(editObj));
+    setOpen(true);
+  };
 
   const save = () => {
     if (!editing) return;
@@ -44,12 +82,14 @@ function ClassesPage() {
   const toggleCell = (slotId: string, day: number) => {
     if (!editing) return;
     const exists = editing.schedule.some((s) => s.slotId === slotId && s.day === day);
-    setEditing({
+    const newSchedule = exists
+      ? editing.schedule.filter((s) => !(s.slotId === slotId && s.day === day))
+      : [...editing.schedule, { slotId, day }];
+    
+    setEditing(updateClassWithEndDate({
       ...editing,
-      schedule: exists
-        ? editing.schedule.filter((s) => !(s.slotId === slotId && s.day === day))
-        : [...editing.schedule, { slotId, day }],
-    });
+      schedule: newSchedule,
+    }));
   };
 
   const toggleStudent = (sid: string) => {
@@ -61,6 +101,11 @@ function ClassesPage() {
         : [...editing.studentIds, sid],
     });
   };
+
+  const matchRoute = useMatchRoute();
+  const isChild = matchRoute({ to: "/classes/$classId", fuzzy: true });
+
+  if (isChild) return <Outlet />;
 
   return (
     <div className="p-8 max-w-7xl">
@@ -74,38 +119,71 @@ function ClassesPage() {
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="space-y-3">
         {classes.map((c) => {
           const t = teachers.find((x) => x.id === c.teacherId);
           const r = rooms.find((x) => x.id === c.roomId);
+          const fc = feeConfigs?.find((x) => x.id === c.feeConfigId) || feeConfigs?.[0];
+          const courseFee = fc?.courseFee ?? 10000000;
+          const monthFee = fc?.monthFee ?? c.feePerMonth;
           return (
-            <div key={c.id} className="rounded-lg border border-border bg-card p-4 hover:border-primary/40 transition-colors">
-              <div className="flex items-start justify-between">
-                <Link to="/classes/$classId" params={{ classId: c.id }} className="flex-1 min-w-0">
-                  <div className="font-semibold hover:text-primary transition-colors">{c.name}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">GV: {t?.name ?? "—"} • {r?.name ?? "—"}</div>
-                </Link>
+            <div key={c.id} className="rounded-xl border border-border bg-card p-4 hover:border-primary/45 hover:shadow-sm transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link to="/classes/$classId" params={{ classId: c.id }} className="text-base font-bold text-foreground hover:text-primary transition-colors">
+                    {c.name}
+                  </Link>
+                  <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20">
+                    {fc?.name || "Cấu hình chuẩn"}
+                  </span>
+                  {c.tuitionType === "course" ? (
+                    <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/25">
+                      Thu theo Khóa
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/25">
+                      Thu theo Tháng
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="font-semibold text-foreground">GV: {t?.name ?? "—"}</span>
+                  <span>&bull;</span>
+                  <span>Phòng: {r?.name ?? "—"}</span>
+                  <span>&bull;</span>
+                  <span className="inline-flex items-center gap-1 font-semibold text-foreground"><Users className="h-3.5 w-3.5 mr-0.5 text-blue-500" /> {c.studentIds.length} học sinh</span>
+                </div>
+                <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 pt-0.5">
+                  <span className="bg-emerald-500/10 text-emerald-600 font-medium px-1.5 py-0.5 rounded text-[10px]">
+                    Bắt đầu: {c.startDate ? new Date(c.startDate).toLocaleDateString("vi-VN") : "—"}
+                  </span>
+                  <span className="bg-blue-500/10 text-blue-600 font-medium px-1.5 py-0.5 rounded text-[10px]">
+                    Kết thúc: {c.endDate ? new Date(c.endDate).toLocaleDateString("vi-VN") : "—"}
+                  </span>
+                  <span className="bg-violet-500/10 text-violet-600 font-medium px-1.5 py-0.5 rounded text-[10px]">
+                    Tổng số: {c.totalSessions || 30} buổi học
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 pt-1.5">
+                  {c.schedule.map((s, i) => {
+                    const slot = slots.find((sl) => sl.id === s.slotId);
+                    return (
+                      <span key={i} className="text-[10px] bg-accent/75 text-accent-foreground font-semibold rounded px-2 py-0.5 border border-border/60">
+                        {DAYS[s.day - 1]} • {slot?.name}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 md:pl-2">
                 <button
                   onClick={(e) => { e.stopPropagation(); openEdit(c); }}
-                  className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors border border-transparent hover:border-border"
                   aria-label="Sửa lớp"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil className="h-4 w-4" />
                 </button>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {c.schedule.map((s, i) => {
-                  const slot = slots.find((sl) => sl.id === s.slotId);
-                  return (
-                    <span key={i} className="text-[11px] bg-accent text-accent-foreground rounded px-1.5 py-0.5">
-                      {DAYS[s.day - 1]} • {slot?.name}
-                    </span>
-                  );
-                })}
-              </div>
-              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                <span>{c.studentIds.length} học sinh</span>
-                <span className="tabular-nums">{formatVND(c.feePerMonth)}/tháng</span>
               </div>
             </div>
           );
@@ -141,9 +219,104 @@ function ClassesPage() {
                       <SelectContent>{rooms.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-1.5">
-                    <Label>Học phí / tháng (VND)</Label>
-                    <Input type="number" value={editing.feePerMonth} onChange={(e) => setEditing({ ...editing, feePerMonth: Number(e.target.value) || 0 })} />
+                  {/* Lựa chọn hình thức thu học phí */}
+                  <div className="grid gap-1.5 col-span-2">
+                    <Label className="font-bold text-xs uppercase text-muted-foreground">Hình thức thu học phí áp dụng</Label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditing(updateClassWithEndDate({ ...editing, tuitionType: "month" }))}
+                        className={cn(
+                          "flex-1 py-2.5 rounded-lg border text-sm font-semibold transition-all text-center",
+                          editing.tuitionType === "month"
+                            ? "bg-primary/5 border-primary text-primary shadow-sm"
+                            : "border-border bg-background hover:bg-muted text-foreground"
+                        )}
+                      >
+                        Thu theo Tháng (Định kỳ)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditing(updateClassWithEndDate({ ...editing, tuitionType: "course" }))}
+                        className={cn(
+                          "flex-1 py-2.5 rounded-lg border text-sm font-semibold transition-all text-center",
+                          editing.tuitionType === "course"
+                            ? "bg-primary/5 border-primary text-primary shadow-sm"
+                            : "border-border bg-background hover:bg-muted text-foreground"
+                        )}
+                      >
+                        Thu theo Khóa (Trọn gói)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Hiển thị input tương ứng với lựa chọn */}
+                  {editing.tuitionType === "month" ? (
+                    <div className="grid gap-1.5 col-span-2">
+                      <Label>Học phí / tháng (VND)</Label>
+                      <Input
+                        type="number"
+                        value={editing.feePerMonth}
+                        onChange={(e) => setEditing(updateClassWithEndDate({ ...editing, feePerMonth: Number(e.target.value) || 0 }))}
+                        placeholder="Nhập số tiền đóng theo tháng..."
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid gap-1.5 col-span-2">
+                      <Label>Cấu hình Học phí (theo độ tuổi)</Label>
+                      <Select
+                        value={editing.feeConfigId || ""}
+                        onValueChange={(v) => {
+                          const config = feeConfigs.find(c => c.id === v);
+                          setEditing(updateClassWithEndDate({
+                            ...editing,
+                            feeConfigId: v,
+                            feePerMonth: config ? config.monthFee : editing.feePerMonth
+                          }));
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Chọn gói học phí theo độ tuổi" /></SelectTrigger>
+                        <SelectContent>
+                          {feeConfigs?.map((fc) => (
+                            <SelectItem key={fc.id} value={fc.id}>
+                              {fc.name} (Khóa: {formatVND(fc.courseFee)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Cấu hình thời gian học */}
+                  <div className="grid grid-cols-3 gap-3 col-span-2 bg-muted/20 p-4 rounded-xl border border-border/60">
+                    <div className="grid gap-1.5">
+                      <Label className="font-semibold text-xs">Ngày bắt đầu</Label>
+                      <Input
+                        type="date"
+                        value={editing.startDate || ""}
+                        onChange={(e) => setEditing(updateClassWithEndDate({ ...editing, startDate: e.target.value }))}
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label className="font-semibold text-xs">Số buổi học</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={editing.totalSessions || ""}
+                        onChange={(e) => setEditing(updateClassWithEndDate({ ...editing, totalSessions: Number(e.target.value) || 0 }))}
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label className="font-semibold text-xs text-primary">Ngày kết thúc (Tự động)</Label>
+                      <Input
+                        type="text"
+                        readOnly
+                        disabled
+                        value={editing.endDate ? editing.endDate : "Chưa xác định"}
+                        className="bg-muted text-muted-foreground font-mono font-bold border-dashed text-center"
+                      />
+                    </div>
                   </div>
                 </div>
 
