@@ -24,18 +24,21 @@ export function AppSidebar({ collapsed, setCollapsed }: AppSidebarProps) {
       "hidden md:flex shrink-0 border-r border-border bg-card flex-col transition-all duration-300 ease-in-out",
       collapsed ? "w-16" : "w-60"
     )}>
-      <div className="h-14 flex items-center justify-between px-3 border-b border-border">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <div className="h-8 w-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-            <School className="h-4 w-4" />
-          </div>
-          {!collapsed && (
+      <div className={cn(
+        "h-14 flex items-center border-b border-border",
+        collapsed ? "justify-center px-0" : "justify-between px-3"
+      )}>
+        {!collapsed && (
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="h-8 w-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+              <School className="h-4 w-4" />
+            </div>
             <div className="leading-tight animate-in fade-in duration-200">
               <div className="text-sm font-semibold whitespace-nowrap">STEPS</div>
               <div className="text-[11px] text-muted-foreground whitespace-nowrap">Quản trị trung tâm</div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"

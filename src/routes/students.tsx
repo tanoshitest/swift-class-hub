@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore, uid, formatVND, type Student } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/students")({
@@ -14,32 +15,72 @@ export const Route = createFileRoute("/students")({
 });
 
 function StudentsPage() {
-  const { students, setStudents, classes, invoices } = useStore();
+  const { students, setStudents, classes, setClasses, invoices } = useStore();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string>("none");
 
   const filtered = students.filter((s) =>
     [s.name, s.parentName, s.parentPhone].join(" ").toLowerCase().includes(q.toLowerCase())
   );
 
-  const openNew = () => { setEditing({ id: "", name: "", parentName: "", parentPhone: "", dob: "" }); setOpen(true); };
-  const openEdit = (s: Student) => { setEditing({ ...s }); setOpen(true); };
+  const openNew = () => {
+    setEditing({ id: "", name: "", parentName: "", parentPhone: "", dob: "" });
+    setSelectedClassId("none");
+    setOpen(true);
+  };
+
+  const openEdit = (s: Student) => {
+    setEditing({ ...s });
+    const currentClass = classes.find((c) => c.studentIds.includes(s.id));
+    setSelectedClassId(currentClass ? currentClass.id : "none");
+    setOpen(true);
+  };
 
   const save = () => {
     if (!editing) return;
-    if (editing.id) setStudents(students.map((s) => (s.id === editing.id ? editing : s)));
-    else setStudents([...students, { ...editing, id: uid() }]);
+    let studentId = editing.id;
+    if (studentId) {
+      setStudents(students.map((s) => (s.id === studentId ? editing : s)));
+    } else {
+      studentId = uid();
+      setStudents([...students, { ...editing, id: studentId }]);
+    }
+
+    // Update classes: remove from all other classes, add to selectedClassId
+    const nextClasses = classes.map((c) => {
+      let updatedIds = c.studentIds.filter((id) => id !== studentId);
+      let updatedBillings = c.studentBillings?.filter((b) => b.studentId !== studentId) || [];
+
+      if (c.id === selectedClassId) {
+        updatedIds = [...updatedIds, studentId];
+        updatedBillings = [...updatedBillings, { studentId, billingMethod: c.tuitionType || "month" }];
+      }
+
+      return {
+        ...c,
+        studentIds: updatedIds,
+        studentBillings: updatedBillings
+      };
+    });
+
+    setClasses(nextClasses);
     setOpen(false);
   };
 
   const remove = () => {
     if (!editing?.id) return;
     setStudents(students.filter((s) => s.id !== editing.id));
+    // Also remove from any classes
+    setClasses(classes.map((c) => ({
+      ...c,
+      studentIds: c.studentIds.filter((id) => id !== editing.id),
+      studentBillings: c.studentBillings?.filter((b) => b.studentId !== editing.id) || []
+    })));
     setOpen(false);
   };
 
-  const enrolled = editing?.id ? classes.filter((c) => c.studentIds.includes(editing.id)) : [];
   const debt = editing?.id
     ? invoices.filter((i) => i.studentId === editing.id).reduce((a, i) => a + (i.amountDue - i.amountPaid), 0)
     : 0;
@@ -128,24 +169,28 @@ function StudentsPage() {
                   <Input value={editing.parentPhone} onChange={(e) => setEditing({ ...editing, parentPhone: e.target.value })} />
                 </div>
 
+                <div className="grid gap-1.5 mt-2">
+                  <Label>Lớp học đăng ký</Label>
+                  <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Chọn lớp học..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Chưa đăng ký lớp / Trống</SelectItem>
+                      {classes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name} ({formatVND(c.feePerMonth)}/tháng)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {editing.id && (
-                  <>
-                    <div className="mt-4">
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Lớp đã đăng ký</div>
-                      <div className="rounded-md border border-border divide-y divide-border">
-                        {enrolled.length ? enrolled.map((c) => (
-                          <div key={c.id} className="px-3 py-2 text-sm flex items-center justify-between">
-                            <span className="font-medium">{c.name}</span>
-                            <span className="text-xs text-muted-foreground tabular-nums">{formatVND(c.feePerMonth)}/tháng</span>
-                          </div>
-                        )) : <div className="px-3 py-4 text-sm text-muted-foreground text-center">Chưa đăng ký lớp</div>}
-                      </div>
-                    </div>
-                    <div className="rounded-md border border-border p-3 flex items-center justify-between">
-                      <div className="text-sm">Học phí còn nợ</div>
-                      <div className={`text-base font-semibold tabular-nums ${debt > 0 ? "text-destructive" : "text-success"}`}>{formatVND(debt)}</div>
-                    </div>
-                  </>
+                  <div className="rounded-md border border-border p-3 flex items-center justify-between mt-3">
+                    <div className="text-sm">Học phí còn nợ</div>
+                    <div className={`text-base font-semibold tabular-nums ${debt > 0 ? "text-destructive" : "text-success"}`}>{formatVND(debt)}</div>
+                  </div>
                 )}
               </div>
               <SheetFooter className="gap-2 sm:justify-between flex-row">

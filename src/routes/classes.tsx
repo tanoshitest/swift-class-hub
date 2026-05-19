@@ -23,17 +23,18 @@ const emptyClass = (): ClassEntity => ({
   roomId: "",
   studentIds: [],
   schedule: [],
-  feePerMonth: 1000000,
-  feeConfigId: "fc1",
+  feePerMonth: 1200000,
+  feePerCourse: 10000000,
   studentBillings: [],
   tuitionType: "month",
   startDate: new Date().toISOString().split("T")[0],
   totalSessions: 30,
-  endDate: ""
+  endDate: "",
+  nextPaymentDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
 });
 
 function ClassesPage() {
-  const { classes, setClasses, teachers, rooms, students, slots, feeConfigs } = useStore();
+  const { classes, setClasses, teachers, rooms, students, slots } = useStore();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClassEntity | null>(null);
 
@@ -60,7 +61,8 @@ function ClassesPage() {
       tuitionType: c.tuitionType || "month",
       startDate: c.startDate || new Date().toISOString().split("T")[0],
       totalSessions: c.totalSessions || 30,
-      endDate: c.endDate || ""
+      endDate: c.endDate || "",
+      nextPaymentDate: c.nextPaymentDate || (c.startDate ? new Date(new Date(c.startDate).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] : "")
     };
     setEditing(updateClassWithEndDate(editObj));
     setOpen(true);
@@ -68,8 +70,31 @@ function ClassesPage() {
 
   const save = () => {
     if (!editing) return;
-    if (editing.id) setClasses(classes.map((c) => (c.id === editing.id ? editing : c)));
-    else setClasses([...classes, { ...editing, id: uid() }]);
+    const newStudentIds = editing.studentIds;
+
+    let nextClasses = classes;
+    if (editing.id) {
+      nextClasses = nextClasses.map((c) => {
+        if (c.id === editing.id) {
+          return editing;
+        } else {
+          return {
+            ...c,
+            studentIds: c.studentIds.filter((id) => !newStudentIds.includes(id)),
+            studentBillings: c.studentBillings?.filter((b) => !newStudentIds.includes(b.studentId)) || []
+          };
+        }
+      });
+    } else {
+      const newId = uid();
+      nextClasses = nextClasses.map((c) => ({
+        ...c,
+        studentIds: c.studentIds.filter((id) => !newStudentIds.includes(id)),
+        studentBillings: c.studentBillings?.filter((b) => !newStudentIds.includes(b.studentId)) || []
+      }));
+      nextClasses.push({ ...editing, id: newId });
+    }
+    setClasses(nextClasses);
     setOpen(false);
   };
 
@@ -94,11 +119,16 @@ function ClassesPage() {
 
   const toggleStudent = (sid: string) => {
     if (!editing) return;
+    const currentBillings = editing.studentBillings || [];
+    const isAdding = !editing.studentIds.includes(sid);
     setEditing({
       ...editing,
-      studentIds: editing.studentIds.includes(sid)
-        ? editing.studentIds.filter((x) => x !== sid)
-        : [...editing.studentIds, sid],
+      studentIds: isAdding
+        ? [...editing.studentIds, sid]
+        : editing.studentIds.filter((x) => x !== sid),
+      studentBillings: isAdding
+        ? [...currentBillings.filter((b) => b.studentId !== sid), { studentId: sid, billingMethod: editing.tuitionType || "month" }]
+        : currentBillings.filter((b) => b.studentId !== sid),
     });
   };
 
@@ -123,9 +153,6 @@ function ClassesPage() {
         {classes.map((c) => {
           const t = teachers.find((x) => x.id === c.teacherId);
           const r = rooms.find((x) => x.id === c.roomId);
-          const fc = feeConfigs?.find((x) => x.id === c.feeConfigId) || feeConfigs?.[0];
-          const courseFee = fc?.courseFee ?? 10000000;
-          const monthFee = fc?.monthFee ?? c.feePerMonth;
           return (
             <div key={c.id} className="rounded-xl border border-border bg-card p-4 hover:border-primary/45 hover:shadow-sm transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex-1 min-w-0 space-y-1.5">
@@ -133,16 +160,13 @@ function ClassesPage() {
                   <Link to="/classes/$classId" params={{ classId: c.id }} className="text-base font-bold text-foreground hover:text-primary transition-colors">
                     {c.name}
                   </Link>
-                  <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20">
-                    {fc?.name || "Cấu hình chuẩn"}
-                  </span>
                   {c.tuitionType === "course" ? (
                     <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/25">
-                      Thu theo Khóa
+                      Thu theo Khóa: {formatVND(c.feePerCourse)}
                     </span>
                   ) : (
                     <span className="text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/25">
-                      Thu theo Tháng
+                      Thu theo Tháng: {formatVND(c.feePerMonth)}/tháng
                     </span>
                   )}
                 </div>
@@ -163,6 +187,11 @@ function ClassesPage() {
                   <span className="bg-violet-500/10 text-violet-600 font-medium px-1.5 py-0.5 rounded text-[10px]">
                     Tổng số: {c.totalSessions || 30} buổi học
                   </span>
+                  {c.nextPaymentDate && (
+                    <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium px-1.5 py-0.5 rounded text-[10px]">
+                      Hạn đóng tiếp theo: {new Date(c.nextPaymentDate).toLocaleDateString("vi-VN")}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
                   {c.schedule.map((s, i) => {
@@ -221,28 +250,37 @@ function ClassesPage() {
                   </div>
                   {/* Lựa chọn hình thức thu học phí */}
                   <div className="grid gap-1.5 col-span-2">
-                    <Label className="font-bold text-xs uppercase text-muted-foreground">Hình thức thu học phí áp dụng</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="font-bold text-xs uppercase text-muted-foreground">Hình thức thu học phí áp dụng</Label>
+                      {editing.id && (
+                        <span className="text-[10px] text-amber-500 font-semibold italic">* Không thể thay đổi hình thức thu phí sau khi tạo</span>
+                      )}
+                    </div>
                     <div className="flex gap-3">
                       <button
                         type="button"
+                        disabled={!!editing.id}
                         onClick={() => setEditing(updateClassWithEndDate({ ...editing, tuitionType: "month" }))}
                         className={cn(
                           "flex-1 py-2.5 rounded-lg border text-sm font-semibold transition-all text-center",
                           editing.tuitionType === "month"
                             ? "bg-primary/5 border-primary text-primary shadow-sm"
-                            : "border-border bg-background hover:bg-muted text-foreground"
+                            : "border-border bg-background hover:bg-muted text-foreground",
+                          editing.id && editing.tuitionType !== "month" && "opacity-50 cursor-not-allowed"
                         )}
                       >
                         Thu theo Tháng (Định kỳ)
                       </button>
                       <button
                         type="button"
+                        disabled={!!editing.id}
                         onClick={() => setEditing(updateClassWithEndDate({ ...editing, tuitionType: "course" }))}
                         className={cn(
                           "flex-1 py-2.5 rounded-lg border text-sm font-semibold transition-all text-center",
                           editing.tuitionType === "course"
                             ? "bg-primary/5 border-primary text-primary shadow-sm"
-                            : "border-border bg-background hover:bg-muted text-foreground"
+                            : "border-border bg-background hover:bg-muted text-foreground",
+                          editing.id && editing.tuitionType !== "course" && "opacity-50 cursor-not-allowed"
                         )}
                       >
                         Thu theo Khóa (Trọn gói)
@@ -252,39 +290,45 @@ function ClassesPage() {
 
                   {/* Hiển thị input tương ứng với lựa chọn */}
                   {editing.tuitionType === "month" ? (
-                    <div className="grid gap-1.5 col-span-2">
-                      <Label>Học phí / tháng (VND)</Label>
-                      <Input
-                        type="number"
-                        value={editing.feePerMonth}
-                        onChange={(e) => setEditing(updateClassWithEndDate({ ...editing, feePerMonth: Number(e.target.value) || 0 }))}
-                        placeholder="Nhập số tiền đóng theo tháng..."
-                      />
-                    </div>
+                    <>
+                      <div className="grid gap-1.5 col-span-2">
+                        <Label>Học phí / tháng (VND)</Label>
+                        <Input
+                          type="number"
+                          value={editing.feePerMonth}
+                          onChange={(e) => setEditing(updateClassWithEndDate({ ...editing, feePerMonth: Number(e.target.value) || 0 }))}
+                          placeholder="Nhập số tiền đóng theo tháng..."
+                        />
+                      </div>
+                      <div className="grid gap-1.5 col-span-2">
+                        <Label>Ngày đóng học phí tiếp theo (Hàng tháng)</Label>
+                        <Input
+                          type="date"
+                          value={editing.nextPaymentDate || ""}
+                          onChange={(e) => setEditing(updateClassWithEndDate({ ...editing, nextPaymentDate: e.target.value }))}
+                        />
+                      </div>
+                    </>
                   ) : (
-                    <div className="grid gap-1.5 col-span-2">
-                      <Label>Cấu hình Học phí (theo độ tuổi)</Label>
-                      <Select
-                        value={editing.feeConfigId || ""}
-                        onValueChange={(v) => {
-                          const config = feeConfigs.find(c => c.id === v);
-                          setEditing(updateClassWithEndDate({
-                            ...editing,
-                            feeConfigId: v,
-                            feePerMonth: config ? config.monthFee : editing.feePerMonth
-                          }));
-                        }}
-                      >
-                        <SelectTrigger><SelectValue placeholder="Chọn gói học phí theo độ tuổi" /></SelectTrigger>
-                        <SelectContent>
-                          {feeConfigs?.map((fc) => (
-                            <SelectItem key={fc.id} value={fc.id}>
-                              {fc.name} (Khóa: {formatVND(fc.courseFee)})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <>
+                      <div className="grid gap-1.5 col-span-2">
+                        <Label>Học phí / khóa (VND)</Label>
+                        <Input
+                          type="number"
+                          value={editing.feePerCourse}
+                          onChange={(e) => setEditing(updateClassWithEndDate({ ...editing, feePerCourse: Number(e.target.value) || 0 }))}
+                          placeholder="Nhập học phí trọn gói theo khóa..."
+                        />
+                      </div>
+                      <div className="grid gap-1.5 col-span-2">
+                        <Label>Ngày đóng học phí tiếp theo (Theo khóa)</Label>
+                        <Input
+                          type="date"
+                          value={editing.nextPaymentDate || ""}
+                          onChange={(e) => setEditing(updateClassWithEndDate({ ...editing, nextPaymentDate: e.target.value }))}
+                        />
+                      </div>
+                    </>
                   )}
 
                   {/* Cấu hình thời gian học */}
@@ -361,12 +405,20 @@ function ClassesPage() {
                   <div className="rounded-lg border border-border max-h-64 overflow-y-auto divide-y divide-border">
                     {students.map((s) => {
                       const on = editing.studentIds.includes(s.id);
+                      const otherClass = classes.find((cl) => cl.id !== editing.id && cl.studentIds.includes(s.id));
                       return (
                         <label key={s.id} className={cn("flex items-center justify-between px-3 py-2 text-sm cursor-pointer hover:bg-muted/30", on && "bg-primary/5")}>
                           <div className="flex items-center gap-2.5">
                             <Checkbox checked={on} onCheckedChange={() => toggleStudent(s.id)} />
                             <div>
-                              <div className="font-medium">{s.name}</div>
+                              <div className="font-medium flex items-center gap-2">
+                                {s.name}
+                                {otherClass && (
+                                  <span className="text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                    Đang học lớp: {otherClass.name}
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-[11px] text-muted-foreground">PH: {s.parentName} • {s.parentPhone}</div>
                             </div>
                           </div>

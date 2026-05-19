@@ -6,13 +6,6 @@ export type Teacher = { id: string; name: string; phone: string; specialization:
 export type Student = { id: string; name: string; parentName: string; parentPhone: string; dob?: string };
 export type ScheduleCell = { slotId: string; day: number }; // day: 1..7
 
-export type FeeConfig = {
-  id: string;
-  name: string;
-  courseFee: number; // Học phí theo khóa (vd: 10.000.000 VNĐ)
-  monthFee: number;  // Học phí theo tháng (vd: 1.500.000 VNĐ)
-};
-
 export type ClassEntity = {
   id: string;
   name: string;
@@ -21,12 +14,13 @@ export type ClassEntity = {
   studentIds: string[];
   schedule: ScheduleCell[];
   feePerMonth: number;
-  feeConfigId?: string; // Assigned fee configuration
+  feePerCourse: number;
   studentBillings?: { studentId: string; billingMethod: "course" | "month" }[];
   tuitionType?: "course" | "month";
   startDate?: string;
   totalSessions?: number;
   endDate?: string;
+  nextPaymentDate?: string;
 };
 
 export type Invoice = {
@@ -99,6 +93,7 @@ const initialTeachers: Teacher[] = [
   { id: "t5", name: "Vũ Đức Thắng", phone: "0945678901", specialization: "English Literature", email: "thang.vd@edu.vn" },
 ];
 const initialStudents: Student[] = [
+  // Class 1 (c1) Students (st1 - st10)
   { id: "st1", name: "Đỗ Minh Khôi", parentName: "Đỗ Văn Hùng", parentPhone: "0981111222", dob: "2010-05-12" },
   { id: "st2", name: "Nguyễn Bảo Châu", parentName: "Nguyễn Thị Mai", parentPhone: "0982222333", dob: "2009-08-21" },
   { id: "st3", name: "Trần Gia Bảo", parentName: "Trần Văn Nam", parentPhone: "0983333444", dob: "2011-02-03" },
@@ -107,138 +102,197 @@ const initialStudents: Student[] = [
   { id: "st6", name: "Hoàng Diệu Linh", parentName: "Hoàng Văn Đức", parentPhone: "0986666777", dob: "2010-07-09" },
   { id: "st7", name: "Bùi Anh Tuấn", parentName: "Bùi Thị Lan", parentPhone: "0987777888", dob: "2011-01-25" },
   { id: "st8", name: "Ngô Thùy Dương", parentName: "Ngô Văn Sơn", parentPhone: "0988888999", dob: "2010-09-14" },
-];
+  { id: "st9", name: "Phạm Hải Nam", parentName: "Phạm Văn Bình", parentPhone: "0989999000", dob: "2009-12-05" },
+  { id: "st10", name: "Vũ Khánh An", parentName: "Vũ Văn Tiến", parentPhone: "0980000111", dob: "2011-06-18" },
 
-const initialFeeConfigs: FeeConfig[] = [
-  { id: "fc1", name: "Cấu hình Độ tuổi 4 - 6 tuổi", courseFee: 10000000, monthFee: 1500000 },
-  { id: "fc2", name: "Cấu hình Độ tuổi 7 - 11 tuổi", courseFee: 12000000, monthFee: 1800000 },
-  { id: "fc3", name: "Cấu hình Độ tuổi 12 - 15 tuổi", courseFee: 8000000, monthFee: 1200000 },
+  // Class 2 (c2) Students (st11 - st20)
+  { id: "st11", name: "Nguyễn Minh Triết", parentName: "Nguyễn Văn Hùng", parentPhone: "0971111222", dob: "2010-04-15" },
+  { id: "st12", name: "Trần Phương Thảo", parentName: "Trần Thị Mai", parentPhone: "0972222333", dob: "2009-09-20" },
+  { id: "st13", name: "Lê Hoàng Long", parentName: "Lê Văn Nam", parentPhone: "0973333444", dob: "2011-03-05" },
+  { id: "st14", name: "Phạm Minh Thư", parentName: "Phạm Thị Hoa", parentPhone: "0974444555", dob: "2010-10-25" },
+  { id: "st15", name: "Hoàng Tuấn Kiệt", parentName: "Hoàng Văn Tài", parentPhone: "0975555666", dob: "2009-05-12" },
+  { id: "st16", name: "Vũ Mai Phương", parentName: "Vũ Văn Đức", parentPhone: "0976666777", dob: "2010-08-08" },
+  { id: "st17", name: "Phan Đăng Khoa", parentName: "Phan Thị Lan", parentPhone: "0977777888", dob: "2011-02-28" },
+  { id: "st18", name: "Đỗ Kim Ngân", parentName: "Đỗ Văn Sơn", parentPhone: "0978888999", dob: "2010-07-14" },
+  { id: "st19", name: "Bùi Gia Huy", parentName: "Bùi Văn Bình", parentPhone: "0979999000", dob: "2009-11-02" },
+  { id: "st20", name: "Nguyễn Ngọc Anh", parentName: "Nguyễn Văn Tiến", parentPhone: "0970000111", dob: "2011-05-19" },
+
+  // Class 3 (c3) Students (st21 - st30)
+  { id: "st21", name: "Trịnh Công Vinh", parentName: "Trịnh Văn Hùng", parentPhone: "0961111222", dob: "2010-03-10" },
+  { id: "st22", name: "Phùng Mỹ Linh", parentName: "Phùng Thị Mai", parentPhone: "0962222333", dob: "2009-10-12" },
+  { id: "st23", name: "Đặng Hữu Phước", parentName: "Đặng Văn Nam", parentPhone: "0963333444", dob: "2011-04-18" },
+  { id: "st24", name: "Đinh Bảo Trâm", parentName: "Đinh Thị Hoa", parentPhone: "0964444555", dob: "2010-09-02" },
+  { id: "st25", name: "Lương Đức Anh", parentName: "Lương Văn Tài", parentPhone: "0965555666", dob: "2009-06-25" },
+  { id: "st26", name: "Tạ Thu Trang", parentName: "Tạ Văn Đức", parentPhone: "0966666777", dob: "2010-06-14" },
+  { id: "st27", name: "Mai Quốc Anh", parentName: "Mai Thị Lan", parentPhone: "0967777888", dob: "2011-03-22" },
+  { id: "st28", name: "Dương Cát Tường", parentName: "Dương Văn Sơn", parentPhone: "0968888999", dob: "2010-08-30" },
+  { id: "st29", name: "Lâm Nhật Huy", parentName: "Lâm Văn Bình", parentPhone: "0969999000", dob: "2009-10-05" },
+  { id: "st30", name: "Đoàn Minh Tú", parentName: "Đoàn Văn Tiến", parentPhone: "0960000111", dob: "2011-04-12" },
+
+  // Class 4 (c4) Students (st31 - st40)
+  { id: "st31", name: "Tô Minh Nhật", parentName: "Tô Văn Hùng", parentPhone: "0951111222", dob: "2010-02-20" },
+  { id: "st32", name: "Giang Khánh Ly", parentName: "Giang Thị Mai", parentPhone: "0952222333", dob: "2009-11-18" },
+  { id: "st33", name: "Quách Thái Dương", parentName: "Quách Văn Nam", parentPhone: "0953333444", dob: "2011-05-12" },
+  { id: "st34", name: "Vi Thanh Hà", parentName: "Vi Thị Hoa", parentPhone: "0954444555", dob: "2010-08-14" },
+  { id: "st35", name: "Liêu Vĩnh Phát", parentName: "Liêu Văn Tài", parentPhone: "0955555666", dob: "2009-07-30" },
+  { id: "st36", name: "Nghiêm Diệu Huyền", parentName: "Nghiêm Văn Đức", parentPhone: "0956666777", dob: "2010-05-24" },
+  { id: "st37", name: "Tôn Thất Bảo", parentName: "Tôn Thị Lan", parentPhone: "0957777888", dob: "2011-04-05" },
+  { id: "st38", name: "Khổng Gia Linh", parentName: "Khổng Văn Sơn", parentPhone: "0958888999", dob: "2010-09-28" },
+  { id: "st39", name: "Thạch Minh Quân", parentName: "Thạch Văn Bình", parentPhone: "0959999000", dob: "2009-09-08" },
+  { id: "st40", name: "Cao Cẩm Tú", parentName: "Cao Văn Tiến", parentPhone: "0950000111", dob: "2011-03-15" }
 ];
 
 const initialClasses: ClassEntity[] = [
   {
     id: "c1", name: "Tiếng Anh Cambridge Stage 9", teacherId: "t1", roomId: "r1",
-    studentIds: ["st1", "st2", "st3", "st4"],
+    studentIds: ["st1", "st2", "st3", "st4", "st5", "st6", "st7", "st8", "st9", "st10"],
     schedule: [{ slotId: "s3", day: 1 }, { slotId: "s3", day: 3 }, { slotId: "s3", day: 5 }],
     feePerMonth: 1500000,
-    feeConfigId: "fc1",
+    feePerCourse: 10000000,
     studentBillings: [
       { studentId: "st1", billingMethod: "course" },
       { studentId: "st2", billingMethod: "month" },
-      { studentId: "st3", billingMethod: "month" },
-      { studentId: "st4", billingMethod: "month" },
     ],
     tuitionType: "month",
     startDate: "2026-05-18",
     totalSessions: 30,
-    endDate: "2026-07-24"
+    endDate: "2026-07-24",
+    nextPaymentDate: "2026-06-18"
   },
   {
     id: "c2", name: "Tiếng Anh Giao Tiếp Quốc Tế", teacherId: "t3", roomId: "r2",
-    studentIds: ["st2", "st5", "st6", "st7", "st8"],
+    studentIds: ["st11", "st12", "st13", "st14", "st15", "st16", "st17", "st18", "st19", "st20"],
     schedule: [{ slotId: "s5", day: 2 }, { slotId: "s5", day: 4 }],
     feePerMonth: 1200000,
-    feeConfigId: "fc1",
+    feePerCourse: 10000000,
     studentBillings: [
-      { studentId: "st2", billingMethod: "course" },
-      { studentId: "st5", billingMethod: "course" },
-      { studentId: "st6", billingMethod: "course" },
-      { studentId: "st7", billingMethod: "course" },
-      { studentId: "st8", billingMethod: "course" },
+      { studentId: "st11", billingMethod: "course" },
+      { studentId: "st12", billingMethod: "course" },
     ],
     tuitionType: "course",
     startDate: "2026-05-18",
     totalSessions: 30,
-    endDate: "2026-08-27"
+    endDate: "2026-08-27",
+    nextPaymentDate: "2026-07-15"
   },
   {
     id: "c3", name: "Tiếng Anh IELTS Academic Masterclass", teacherId: "t2", roomId: "r3",
-    studentIds: ["st1", "st5", "st8"],
+    studentIds: ["st21", "st22", "st23", "st24", "st25", "st26", "st27", "st28", "st29", "st30"],
     schedule: [{ slotId: "s4", day: 2 }, { slotId: "s4", day: 6 }],
     feePerMonth: 1400000,
-    feeConfigId: "fc2",
+    feePerCourse: 12000000,
     studentBillings: [
-      { studentId: "st1", billingMethod: "course" },
-      { studentId: "st5", billingMethod: "course" },
-      { studentId: "st8", billingMethod: "course" },
+      { studentId: "st21", billingMethod: "course" },
     ],
     tuitionType: "course",
     startDate: "2026-05-18",
     totalSessions: 30,
-    endDate: "2026-08-29"
+    endDate: "2026-08-29",
+    nextPaymentDate: "2026-07-20"
   },
   {
     id: "c4", name: "Tiếng Anh SAT Prep & Vocabulary", teacherId: "t4", roomId: "r4",
-    studentIds: ["st3", "st4", "st6"],
+    studentIds: ["st31", "st32", "st33", "st34", "st35", "st36", "st37", "st38", "st39", "st40"],
     schedule: [{ slotId: "s2", day: 7 }],
     feePerMonth: 1000000,
-    feeConfigId: "fc3",
+    feePerCourse: 8000000,
     studentBillings: [
-      { studentId: "st3", billingMethod: "month" },
-      { studentId: "st4", billingMethod: "month" },
-      { studentId: "st6", billingMethod: "month" },
+      { studentId: "st31", billingMethod: "month" },
+      { studentId: "st32", billingMethod: "month" },
+      { studentId: "st33", billingMethod: "month" },
     ],
     tuitionType: "month",
     startDate: "2026-05-18",
     totalSessions: 30,
-    endDate: "2026-12-13"
+    endDate: "2026-12-13",
+    nextPaymentDate: "2026-06-18"
   },
 ];
 
-const initialInvoices: Invoice[] = [
-  // Mock Data 1 (Theo khóa): Học viên A (st1 - Đỗ Minh Khôi), Hình thức "Theo khóa", Nợ kỳ trước: 0, Số tiền kỳ này: 10.000.000. Tổng phải thu: 10.000.000. Trạng thái: Đã thanh toán
-  {
-    id: "i_c1",
-    studentId: "st1",
-    classId: "c1",
-    billingMethod: "course",
-    period: "Khóa Hè 2026",
-    previousDebt: 0,
-    currentAmount: 10000000,
-    amountDue: 10000000,
-    amountPaid: 10000000,
-    status: "paid"
-  },
-  // Mock Data 2 (Theo khóa): Học viên B (st5 - Phạm Hải Nam), Hình thức "Theo khóa", Nợ kỳ trước: 0, Số tiền kỳ này: 10.000.000. Tổng phải thu: 10.000.000. Trạng thái: Chưa thanh toán
-  {
-    id: "i_c2",
-    studentId: "st5",
-    classId: "c2",
-    billingMethod: "course",
-    period: "Khóa Hè 2026",
-    previousDebt: 0,
-    currentAmount: 10000000,
-    amountDue: 10000000,
-    amountPaid: 0,
-    status: "unpaid"
-  },
-  // Mock Data 3 (Theo tháng - Tháng đầu tiên): Học viên C (st2 - Nguyễn Bảo Châu), Hình thức "Theo tháng", Kỳ thu phí: "Tháng 5/2026", Nợ kỳ trước: 0, Số tiền kỳ này: 1.500.000. Trạng thái: Chưa thanh toán.
-  {
-    id: "i_m1",
-    studentId: "st2",
-    classId: "c1",
-    billingMethod: "month",
-    period: "Tháng 5/2026",
-    previousDebt: 0,
-    currentAmount: 1500000,
-    amountDue: 1500000,
-    amountPaid: 0,
-    status: "unpaid"
-  },
-  // Mock Data 4 (Theo tháng - Cộng dồn nợ): Học viên C (st2 - Nguyễn Bảo Châu), Hình thức "Theo tháng", Kỳ thu phí: "Tháng 6/2026", Nợ kỳ trước: 1.500.000 (từ tháng 5), Số tiền kỳ này: 1.500.000. Tổng phải thu: 3.000.000. Trạng thái: Chưa thanh toán.
-  {
-    id: "i_m2",
-    studentId: "st2",
-    classId: "c1",
-    billingMethod: "month",
-    period: "Tháng 6/2026",
-    previousDebt: 1500000,
-    currentAmount: 1500000,
-    amountDue: 3000000,
-    amountPaid: 0,
-    status: "unpaid"
-  }
-];
+const generateInitialInvoices = (): Invoice[] => {
+  const result: Invoice[] = [];
+  const classEntityList = [
+    { id: "c1", feePerMonth: 1500000, feePerCourse: 10000000, studentIds: ["st1", "st2", "st3", "st4", "st5", "st6", "st7", "st8", "st9", "st10"] },
+    { id: "c2", feePerMonth: 1200000, feePerCourse: 10000000, studentIds: ["st11", "st12", "st13", "st14", "st15", "st16", "st17", "st18", "st19", "st20"] },
+    { id: "c3", feePerMonth: 1400000, feePerCourse: 12000000, studentIds: ["st21", "st22", "st23", "st24", "st25", "st26", "st27", "st28", "st29", "st30"] },
+    { id: "c4", feePerMonth: 1600000, feePerCourse: 15000000, studentIds: ["st31", "st32", "st33", "st34", "st35", "st36", "st37", "st38", "st39", "st40"] }
+  ];
+
+  classEntityList.forEach((cls) => {
+    cls.studentIds.forEach((studentId, idx) => {
+      // Half month billing, half course billing
+      if (idx < 5) {
+        // Month billing (e.g. Tháng 5/2026, Tháng 6/2026)
+        // 1st month status
+        const status5: Invoice["status"] = (idx % 3 === 0) ? "paid" : (idx % 3 === 1) ? "unpaid" : "partial";
+        const amtPaid5 = status5 === "paid" ? cls.feePerMonth : status5 === "partial" ? cls.feePerMonth / 2 : 0;
+        result.push({
+          id: `inv_${cls.id}_${studentId}_m5`,
+          studentId,
+          classId: cls.id,
+          billingMethod: "month",
+          period: "Tháng 5/2026",
+          previousDebt: 0,
+          currentAmount: cls.feePerMonth,
+          amountDue: cls.feePerMonth,
+          amountPaid: amtPaid5,
+          status: status5
+        });
+
+        // 2nd month status (with potential previous debt)
+        const prevDebt = cls.feePerMonth - amtPaid5;
+        const status6: Invoice["status"] = (idx % 2 === 0) ? "unpaid" : "paid";
+        result.push({
+          id: `inv_${cls.id}_${studentId}_m6`,
+          studentId,
+          classId: cls.id,
+          billingMethod: "month",
+          period: "Tháng 6/2026",
+          previousDebt: prevDebt,
+          currentAmount: cls.feePerMonth,
+          amountDue: cls.feePerMonth + prevDebt,
+          amountPaid: status6 === "paid" ? (cls.feePerMonth + prevDebt) : 0,
+          status: status6
+        });
+      } else {
+        // Course billing (e.g. Khóa Xuân 2026 & Khóa Hè 2026)
+        // Spring course status
+        const statusSpring: Invoice["status"] = (idx % 2 === 0) ? "paid" : "partial";
+        result.push({
+          id: `inv_${cls.id}_${studentId}_cs`,
+          studentId,
+          classId: cls.id,
+          billingMethod: "course",
+          period: "Khóa Xuân 2026",
+          previousDebt: 0,
+          currentAmount: cls.feePerCourse,
+          amountDue: cls.feePerCourse,
+          amountPaid: statusSpring === "paid" ? cls.feePerCourse : 5000000,
+          status: statusSpring
+        });
+
+        // Summer course status
+        const statusSummer: Invoice["status"] = (idx % 2 === 0) ? "unpaid" : "paid";
+        result.push({
+          id: `inv_${cls.id}_${studentId}_ch`,
+          studentId,
+          classId: cls.id,
+          billingMethod: "course",
+          period: "Khóa Hè 2026",
+          previousDebt: 0,
+          currentAmount: cls.feePerCourse,
+          amountDue: cls.feePerCourse,
+          amountPaid: statusSummer === "paid" ? cls.feePerCourse : 0,
+          status: statusSummer
+        });
+      }
+    });
+  });
+
+  return result;
+};
+
+const initialInvoices: Invoice[] = generateInitialInvoices();
 
 type Store = {
   rooms: Room[]; setRooms: (r: Room[]) => void;
@@ -247,7 +301,7 @@ type Store = {
   students: Student[]; setStudents: (s: Student[]) => void;
   classes: ClassEntity[]; setClasses: (c: ClassEntity[]) => void;
   invoices: Invoice[]; setInvoices: (i: Invoice[]) => void;
-  feeConfigs: FeeConfig[]; setFeeConfigs: (f: FeeConfig[]) => void;
+  sessions: LessonSession[]; setSessions: (s: LessonSession[]) => void;
 };
 
 const StoreCtx = createContext<Store | null>(null);
@@ -259,7 +313,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [students, setStudents] = useState(initialStudents);
   const [classes, setClasses] = useState(initialClasses);
   const [invoices, setInvoices] = useState(initialInvoices);
-  const [feeConfigs, setFeeConfigs] = useState(initialFeeConfigs);
+  const [sessions, setSessions] = useState(initialSessions);
   return (
     <StoreCtx.Provider value={{
       rooms, setRooms,
@@ -268,7 +322,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       students, setStudents,
       classes, setClasses,
       invoices, setInvoices,
-      feeConfigs, setFeeConfigs
+      sessions, setSessions
     }}>
       {children}
     </StoreCtx.Provider>
@@ -295,6 +349,9 @@ export type StudentSessionRecord = {
   classScore: number | null;
   homeworkScore: number | null;
   comment: string;
+  submittedClip?: boolean;
+  broughtTools?: boolean;
+  notes?: string;
 };
 
 export type LessonSession = {
@@ -308,6 +365,8 @@ export type LessonSession = {
   materials: string[];
   homework: string;
   records: StudentSessionRecord[];
+  mergedLabel?: string;
+  isBigTest?: boolean;
 };
 
 // ─── Mock sessions ────────────────────────────────────────────────────────────
@@ -370,7 +429,10 @@ const generate30Sessions = (classId: string, studentIds: string[]): LessonSessio
         attendance,
         classScore: attendance === "absent" ? null : parseFloat(classScore.toFixed(1)),
         homeworkScore: attendance === "absent" ? null : parseFloat(homeworkScore.toFixed(1)),
-        comment
+        comment,
+        submittedClip: idx % 2 === 0,
+        broughtTools: idx % 3 !== 0,
+        notes: ""
       };
     });
 
@@ -400,13 +462,16 @@ const generate30Sessions = (classId: string, studentIds: string[]): LessonSessio
         `Activity extracts from ${topicData.book}`
       ],
       homework: `Complete practice exercise sheet 3 & 4 of ${topicData.book}; compile weekly vocabulary list.`,
-      records
+      records,
+      isBigTest: i === 15 || i === 30
     });
   }
   return list;
 };
 
 export const initialSessions: LessonSession[] = [
-  ...generate30Sessions("c1", ["st1", "st2", "st3", "st4"]),
-  ...generate30Sessions("c2", ["st2", "st5", "st6", "st7", "st8"])
+  ...generate30Sessions("c1", ["st1", "st2", "st3", "st4", "st5", "st6", "st7", "st8", "st9", "st10"]),
+  ...generate30Sessions("c2", ["st11", "st12", "st13", "st14", "st15", "st16", "st17", "st18", "st19", "st20"]),
+  ...generate30Sessions("c3", ["st21", "st22", "st23", "st24", "st25", "st26", "st27", "st28", "st29", "st30"]),
+  ...generate30Sessions("c4", ["st31", "st32", "st33", "st34", "st35", "st36", "st37", "st38", "st39", "st40"])
 ];
